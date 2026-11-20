@@ -1,197 +1,176 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Дрова Маркет</title>
-  <!-- Подключаем библиотеку Telegram -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  
-  <style>
-    :root {
-      --tg-bg-color: var(--tg_theme_bg_color, #ffffff);
-      --tg-text-color: var(--tg_theme_text_color, #000000);
-      --tg-btn-color: var(--tg_theme_button_color, #2481cc);
-      --tg-btn-text: var(--tg_theme_button_text_color, #ffffff);
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
-      background-color: var(--tg-bg-color);
-      color: var(--tg-text-color);
-      margin: 0;
-      padding: 12px;
-      box-sizing: border-box;
-    }
-    .screen { display: none; animation: fadeIn 0.3s; }
-    .screen.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-    h1 { margin-top: 0; font-size: 22px; }
-    h2 { font-size: 18px; margin-bottom: 10px; }
-    
-    .card {
-      background: white;
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      margin-bottom: 16px;
-    }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .tag {
-      display: inline-block; background: #f0f0f0; padding: 4px 8px;
-      border-radius: 6px; font-size: 12px; color: #555;
-    }
-
-    label { display: block; margin-top: 14px; font-weight: 600; color: var(--tg-text-color); }
-    input, select, textarea {
-      width: 100%; padding: 12px; border: 1px solid #ddd;
-      border-radius: 8px; box-sizing: border-box; font-size: 15px;
-      background: #f9f9f9;
-    }
-    button {
-      width: 100%; margin-top: 20px; padding: 14px;
-      background-color: var(--tg-btn-color); color: var(--tg-btn-text);
-      border: none; border-radius: 8px; font-size: 17px; font-weight: bold;
-      cursor: pointer;
-    }
-    button:active { opacity: 0.9; }
-    .btn-secondary { background-color: transparent; color: var(--tg-btn-color); border: 1px solid var(--tg-btn-color); }
-    
-    .copy-btn {
-      margin-top: 10px; padding: 8px 12px; background: #eee;
-      border: 1px solid #ccc; border-radius: 6px; cursor: pointer; font-size: 13px;
-    }
-    .copy-btn:active { background: #ddd; }
-
-    .back-link { color: var(--tg-btn-color); text-decoration: underline; margin-bottom: 16px; display: inline-block; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Обменник Дров — Каталог</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f4f1ec; color: #2b2b2b;
+    margin: 0; padding: 16px; max-width: 480px; margin: 0 auto;
+  }
+  h1 { font-size: 22px; text-align: center; }
+  h2 { font-size: 18px; }
+  .card {
+    background: #fff; border-radius: 12px; padding: 14px;
+    margin: 12px 0; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .card img { width: 100%; border-radius: 8px; }
+  .price { font-size: 18px; font-weight: bold; color: #b3541e; }
+  .muted { color: #777; font-size: 14px; }
+  button {
+    background: #2f6f3e; color: #fff; border: none; border-radius: 10px;
+    padding: 12px 18px; font-size: 16px; width: 100%; margin-top: 10px;
+  }
+  .btn-back { background: #888; }
+  input {
+    width: 100%; padding: 10px; margin: 8px 0; border-radius: 8px;
+    border: 1px solid #ccc; box-sizing: border-box; font-size: 15px;
+  }
+  .hidden { display: none; }
+</style>
 </head>
 <body>
 
-  <!-- ЭКРАН 1: КАТАЛОГ -->
-  <div id="screen-catalog" class="screen active">
-    <h1>🪵 Каталог дров</h1>
-    <p>Выберите продавца для заказа машины.</p>
-    <div id="catalog-list" class="grid">
-      <div class="card"><h2>Загрузка...</h2></div>
-    </div>
+<div id="screen-catalog">
+  <h1>🪵 Обменник Дров</h1>
+  <p class="muted">Выбирай машину дров — закажи доставкой к дому.</p>
+  <div id="catalog-list"></div>
+</div>
+
+<div id="screen-card" class="hidden">
+  <button class="btn-back" onclick="showCatalog()">← Назад к каталогу</button>
+  <div class="card" id="card-body"></div>
+</div>
+
+<div id="screen-order" class="hidden">
+  <button class="btn-back" onclick="showCard()">← Назад</button>
+  <div class="card">
+    <h2>🚛 Оформление заказа</h2>
+    <p id="order-seller" class="muted"></p>
+    <label>Куда доставить дрова (село / город):</label>
+    <input type="text" id="form-delivery" placeholder="Например: Турунтаево">
+    <label>Ваш телефон (для связи продавца):</label>
+    <input type="tel" id="form-phone" placeholder="Например: 89021234567">
+    <button onclick="submitOrder()">✅ Отправить заказ</button>
+    <p class="muted">Передумали? Просто нажмите «← Назад».</p>
   </div>
+</div>
 
-  <!-- ЭКРАН 2: КАРТОЧКА ПРОДАВЦА -->
-  <div id="screen-detail" class="screen">
-    <a href="#" class="back-link" onclick="showScreen('catalog')">← Назад к каталогу</a>
-    <div class="card">
-      <h2 id="seller-name">Имя продавца</h2>
-      <p><span class="tag" id="seller-breed">Порода</span> <span class="tag">Машина 5 м³</span></p>
-      <p style="font-size:14px; color:#666;">Цена: <b id="seller-price">0 ₽</b></p>
-      <p id="seller-desc" style="margin-top:10px;"></p>
-      <button onclick="showScreen('order')">Заказать машину</button>
-    </div>
-  </div>
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.expand();
 
-  <!-- ЭКРАН 3: ФОРМА ЗАКАЗА -->
-  <div id="screen-order" class="screen">
-    <a href="#" class="back-link" onclick="showScreen('detail')">← Назад</a>
-    <div class="card">
-      <h2>Оформление заказа</h2>
-      <form id="orderForm">
-        <label>Порода (уже выбрана)</label>
-        <input type="text" id="form-breed" readonly style="background:#eee;">
-        
-        <label>Объём (м³)</label>
-        <input type="number" id="form-volume" value="5" step="0.5" required>
-        
-        <label>Адрес доставки</label>
-        <textarea id="form-address" rows="2" placeholder="Город, улица, дом" required></textarea>
-        
-        <label>Телефон (подставится автоматически)</label>
-        <input type="tel" id="form-phone" readonly style="background:#eee;">
+  const FALLBACK = [
+    {id: "demo1", name: "ИП Иванов", town: "Улан-Удэ", car: "ГАЗ-53", vol: 6,
+     breed: "Сосна", price: 12000},
+    {id: "demo2", name: "Частный мастер", town: "Турунтаево", car: "ЗИЛ-130", vol: 5,
+     breed: "Берёза", price: 9000},
+    {id: "demo3", name: "Лесопилка «Тайга»", town: "Иволгинск", car: "КамАЗ", vol: 10,
+     breed: "Смешанный", price: 15000}
+  ];
 
-        <button type="submit">Подтвердить заказ</button>
-      </form>
-    </div>
-  </div>
+  let SELLERS = [];
+  let currentSeller = null;
 
-  <!-- ЭКРАН 4: УСПЕХ -->
-  <div id="screen-success" class="screen">
-    <div style="text-align:center; margin-top:40px;">
-      <h1 style="color:green;">✅ Заказ принят!</h1>
-      <p>Продавец получит уведомление.</p>
-      <br>
-      <button class="btn-secondary" onclick="Telegram.WebApp.close()">Закрыть приложение</button>
-    </div>
-  </div>
-
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-
-    // Имитация данных (потом заменим на реальный запрос к твоему Python-боту)
-    const sellers = [
-      { id: 1, name: "ИП Иванов", breed: "Сосна", price: 15000, desc: "Сухие колотые дрова, влажность 15%. Доставка по району." },
-      { id: 2, name: "Лесопилка 'Тайга'", breed: "Лиственница", price: 18000, desc: "Плотная древесина, горят долго. Есть самовывоз." },
-      { id: 3, name: "Частный мастер", breed: "Берёза", price: 14000, desc: "Свежие дрова, рубка в день заказа." }
-    ];
-
-    let currentSeller = null;
-
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-      document.getElementById('screen-' + id).classList.add('active');
-      
-      if (id === 'detail') loadDetail();
-      if (id === 'order') loadOrderForm();
+  async function loadCatalog() {
+    try {
+      const r = await fetch("sellers.json");
+      const data = await r.json();
+      if (Array.isArray(data) && data.length > 0) SELLERS = data;
+      else SELLERS = FALLBACK;
+    } catch (e) {
+      SELLERS = FALLBACK;
     }
+    renderCatalog();
+  }
 
-    function loadCatalog() {
-      const list = document.getElementById('catalog-list');
-      list.innerHTML = '';
-      sellers.forEach(s => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <h2>${s.name}</h2>
-          <p><span class="tag">${s.breed}</span> <b>${s.price} ₽</b></p>
-          <p style="font-size:13px; color:#666;">${s.desc}</p>
-          <button onclick="selectSeller(${s.id})">Выбрать</button>
-        `;
-        list.appendChild(card);
-      });
-    }
+  function fmt(x) {
+    return String(x).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
 
-    function selectSeller(id) {
-      currentSeller = sellers.find(s => s.id === id);
-      showScreen('detail');
-    }
-
-    function loadDetail() {
-      if (!currentSeller) return;
-      document.getElementById('seller-name').innerText = currentSeller.name;
-      document.getElementById('seller-breed').innerText = currentSeller.breed;
-      document.getElementById('seller-price').innerText = `${currentSeller.price} ₽`;
-      document.getElementById('seller-desc').innerText = currentSeller.desc;
-    }
-
-    function loadOrderForm() {
-      if (!currentSeller) return;
-      document.getElementById('form-breed').value = currentSeller.breed;
-      // Подставляем телефон из Telegram, если есть
-      const userPhone = tg.initDataUnsafe?.user?.phone_number;
-      if (userPhone) {
-        document.getElementById('form-phone').value = userPhone;
-      } else {
-        document.getElementById('form-phone').placeholder = "Введите ваш телефон";
-        document.getElementById('form-phone').removeAttribute('readonly');
-      }
-    }
-
-    document.getElementById('orderForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      alert('Данные собраны! (Здесь будет отправка в data_drova.json)');
-      showScreen('success');
+  function renderCatalog() {
+    const box = document.getElementById("catalog-list");
+    box.innerHTML = "";
+    SELLERS.forEach((s, i) => {
+      const d = document.createElement("div");
+      d.className = "card";
+      d.innerHTML =
+        "<b>" + (s.name || "Продавец") + "</b><br>" +
+        "🚚 " + (s.car || "—") + " — " + fmt(s.vol || 0) + " м³<br>" +
+        "🌲 " + (s.breed || "—") + "<br>" +
+        "📍 " + (s.town || "—") + "<br>" +
+        "<span class='price'>" + fmt(s.price || 0) + " ₽ за полную машину</span><br>";
+      const btn = document.createElement("button");
+      btn.textContent = "Открыть";
+      btn.onclick = () => openCard(i);
+      d.appendChild(btn);
+      box.appendChild(d);
     });
+  }
 
-    loadCatalog();
-  </script>
+  function show(id) {
+    ["screen-catalog", "screen-card", "screen-order"].forEach(x =>
+      document.getElementById(x).classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
+    window.scrollTo(0, 0);
+  }
+
+  function showCatalog() { show("screen-catalog"); }
+
+  function openCard(i) {
+    currentSeller = SELLERS[i];
+    const body = document.getElementById("card-body");
+    let html = "";
+    if (currentSeller.photo) {
+      html += "<img src='" + currentSeller.photo + "' alt='Фото дров'>";
+    }
+    html +=
+      "<h2>" + (currentSeller.name || "Продавец") + "</h2>" +
+      "🚚 Машина: " + (currentSeller.car || "—") + "<br>" +
+      "📦 Объём: " + fmt(currentSeller.vol || 0) + " м³<br>" +
+      "🌲 Порода: " + (currentSeller.breed || "—") + "<br>" +
+      "📍 Откуда: " + (currentSeller.town || "—") + "<br>" +
+      "<span class='price'>💰 " + fmt(currentSeller.price || 0) +
+      " ₽ за полную машину</span>";
+    body.innerHTML = html;
+    show("screen-card");
+  }
+
+  function showCard() { show("screen-card"); }
+
+  function openOrder() {
+    if (!currentSeller) return;
+    document.getElementById("order-seller").textContent =
+      "Заказ у: " + currentSeller.name + " (" + fmt(currentSeller.price) + " ₽)";
+    show("screen-order");
+  }
+
+  function submitOrder() {
+    const phone = document.getElementById("form-phone").value.trim();
+    const delivery = document.getElementById("form-delivery").value.trim();
+
+    if (phone.replace(/\D/g, "").length < 10) {
+      alert("Введите телефон минимум из 10 цифр");
+      return;
+    }
+    if (delivery.length < 2) {
+      alert("Укажите населённый пункт доставки");
+      return;
+    }
+
+    tg.sendData(JSON.stringify({
+      action: "order",
+      seller_id: currentSeller.id,
+      phone: phone,
+      delivery: delivery
+    }));
+  }
+
+  loadCatalog();
+</script>
+
 </body>
 </html>
